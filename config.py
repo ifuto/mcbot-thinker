@@ -50,6 +50,11 @@ class RLConfig:
     opp_tau: float = 0.01               # polyak EMA rate for opponent policy
     opp_reset_every: int = 0            # 0 = EMA; else hard-copy learner->opp every N iters
 
+    # curriculum (hybrid trainer): ramp opponent difficulty from random-heavy
+    # toward scripted:aggro over `curriculum_iters` iterations.
+    curriculum_iters: int = 400
+    curriculum_max_scripted: float = 0.6
+
     # reward shaping (slot order matches consts.DEFAULT_REW)
     reward: List[float] = field(default_factory=lambda: list(C.DEFAULT_REW))
 

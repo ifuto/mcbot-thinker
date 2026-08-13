@@ -16,14 +16,20 @@ import torch
 
 from mcbot.sim.env import SimEnv
 from mcbot.sim import consts as C
-from mcbot.bots import Bot, ScriptedBot
+from mcbot.bots import Bot, ScriptedBot, HybridBot
 from mcbot.viz.replay_html import write_replay
 
 
 def make_side(spec, presets, hidden, greedy):
-    """Accept either a checkpoint path or 'scripted:<style>'."""
+    """Accept a checkpoint path, 'scripted:<style>', or 'hybrid:<style>:<path>'."""
     if spec.startswith("scripted:"):
         return ScriptedBot(style=spec.split(":", 1)[1], name=spec), "scripted"
+    if spec.startswith("hybrid:"):
+        parts = spec.split(":")
+        style = parts[1] if len(parts) > 2 else "aggro"
+        path = parts[2] if len(parts) > 2 else parts[1]
+        return HybridBot.load(path, base_style=style, name=spec, greedy=greedy,
+                              hidden=hidden), "hybrid"
     return Bot.load(spec, presets=presets, name=spec, greedy=greedy, hidden=hidden), "policy"
 
 
