@@ -1,0 +1,5 @@
+# CPU-only torch keeps this runnable on a potato. Install with:
+#   pip install -r requirements.txt  (or in a venv)
+numpy>=1.24
+torch>=2.1
+pytest>=7.0

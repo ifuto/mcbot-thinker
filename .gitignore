@@ -1,0 +1,16 @@
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# compiled C core (rebuilt by mcbot/sim/build.py on demand)
+mcbot/sim/core.so
+
+# training output (keep these out of git; they're regenerated)
+checkpoints/
+train_*.csv
+
+# misc
+.DS_Store
+*.log
