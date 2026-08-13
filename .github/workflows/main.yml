@@ -1,0 +1,42 @@
+name: train-sword-1v1
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'mcbot/sim/**'
+      - 'mcbot/rl/**'
+      - 'mcbot/bots.py'
+      - 'config.py'
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install numpy pytest
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Build C core + physics tests
+        run: |
+          python mcbot/sim/build.py
+          python -m pytest tests/ -q
+      - name: Train (~5h40m, 512 parallel arenas)
+        run: |
+          python -m mcbot.rl.train --warmstart 8000 --nmatches 512 --rollout 128 \
+            --iterations 0 --ckpt-dir checkpoints --run sword1v1 \
+            --save-every 100 --log-every 20 --eval-every 50 --eval-matches 8 \
+            --max-minutes 340
+      - name: Upload checkpoints
+        uses: actions/upload-artifact@v4
+        with:
+          name: sword1v1-checkpoints
+          path: |
+            checkpoints/
+            models/
+          if-no-files-found: error
