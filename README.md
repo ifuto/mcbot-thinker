@@ -83,15 +83,26 @@ python3 -m venv .venv
 
 ### 学習（1日放置・自動再開）
 
-```bash
-# ウォームスタート(BC) → PPO自己対戦。--iterations 0 で無制限（Ctrl+Cで保存終了）
-.venv/bin/python -m mcbot.rl.train --warmstart 6000 --nmatches 512 --rollout 128 \
-    --iterations 0 --ckpt-dir checkpoints --run sword1v1 \
-    --eval-every 50 --save-every 200
+**推奨: 強スクリプト相手と直接PPO対戦**（`mcbot.rl.train_vs_scripted`）。
+ウォームスタートの行動クローニングは、クールダウンに合わせた攻撃タイミングを再現できず
+「連打か不攻撃」に崩れるため、固定の強いスクリプト剣士を相手に報酬で直接タイミングを
+学ばせる方式に置き換えました。`--iterations 0` で無制限（Ctrl+Cで保存終了）。
 
-# 報酬調整の例: 敗北ペナルティを -8 → -10 に上げる（カンマ9個、スロット順）
-.venv/bin/python -m mcbot.rl.train --warmstart 6000 --reward '1,1,0.3,0.4,0.5,0.005,5,10,2' ...
+```bash
+.venv/bin/python -m mcbot.rl.train_vs_scripted --iterations 0 \
+    --nmatches 512 --rollout 128 --ckpt-dir checkpoints --run sword1v1 \
+    --style aggro --save-every 100 --log-every 20 \
+    --eval-every 50 --eval-matches 8 --max-minutes 340
 ```
+
+- `--style` は相手のスクリプト剣士のスタイル（`aggro` / `strafer`）。
+- `--eval-every` で「スクリプト相手」への固定ベースライン評価を行い、
+  **実力が最も高い時点を `*_best.pt`** として保存します。
+- `--max-minutes N` で「N分経ったらきれいに保存して停止」。
+
+従来の自己対戦PPO（`mcbot.rl.train`）も `mcbot/rl/ppo.py` に残っていますが、自己対戦は
+相手が適応して勝率が振動するため不安定で、推奨しません。同梱デフォルトBOT
+（`models/sword1v1_default.pt`）は vs-scripted 学習でランダム相手に ~0.98 勝ちます。
 
 - 途中経過は `checkpoints/sword1v1_log.csv` に記録、Ctrl+C で保存終了、次回起動で自動再開。
 - `--max-minutes N` で「N分経ったらきれいに保存して停止」できます（CI用）。
@@ -102,6 +113,7 @@ python3 -m venv .venv
 
 1. このリポジトリを GitHub にプッシュする。
 2. リポジトリの **Actions** タブ → **train-sword-1v1** → **Run workflow** を押す。
+   （workflowのTrainステップのコマンドは、下記の vs-scripted 版を使ってください）
 3. ジョブが **~5時間40分** 学習し（512並列アリーナ、自動でウォームスタート→PPO自己対戦）、
    終了時に **`sword1v1-checkpoints` というアーティファクト** として以下をアップロード:
    - `checkpoints/sword1v1_best.pt`（固定ベースライン評価で最強の時点）

@@ -52,23 +52,22 @@ def collect(cfg, nsteps, style="aggro"):
     return obs_buf, act_buf
 
 
-def bc_train(cfg, obs, acts, epochs=3, lr=1e-3, minibatch=2048):
-    """Behavior-cloning with class-weighting so minority actions (attack) are
-    actually learned instead of being collapsed away by greedy argmax."""
+def bc_train(cfg, obs, acts, epochs=3, lr=1e-3, minibatch=2048, attack_weight=None):
+    """Behavior-cloning with optional class-weighting on the attack head.
+    attack_weight=None -> no upweight (match source rate naturally).
+    A small value (2-4) upweights the rare attack class a little; too large
+    causes spam-attacking (cooldown never completes -> no real damage).
+    """
     net = ActorCritic(C.NOBS, cfg.action_space(), cfg.hidden)
     opt = torch.optim.Adam(net.parameters(), lr=lr)
     N = obs.shape[0]
 
-    # per-head class weights (attack=1 is the minority -> upweight it)
     nclasses = [C.NMOVE, 2, 2, 2, 2]
     weights = []
     for i in range(C.NACT):
         nc = nclasses[i]
-        if i == C.A_ATTACK:
-            counts = np.bincount(acts[:, i], minlength=2)[:2].astype(np.float32)
-            # balance: rare attack class gets w = n0/max(1,n1), capped
-            w1 = min(10.0, max(0.0, counts[0]) / max(1.0, counts[1]))
-            weights.append(torch.tensor([1.0, w1]))
+        if i == C.A_ATTACK and attack_weight is not None:
+            weights.append(torch.tensor([1.0, float(attack_weight)]))
         else:
             weights.append(torch.ones(nc))
 
