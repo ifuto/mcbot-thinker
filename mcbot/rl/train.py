@@ -78,6 +78,9 @@ def main():
                     help="comma list of 9 reward weights in slot order: "
                          "dmg_dealt,dmg_taken,crit,sprint_kb,combo,miss,win,lose,draw "
                          "e.g. '1,1,0.3,0.4,0.5,0.005,5,8,2'")
+    ap.add_argument("--max-minutes", type=float, default=0,
+                    help="stop & save after N minutes (0 = run forever). "
+                         "For GitHub Actions 6h runs, use ~340.")
     args = ap.parse_args()
 
     rl = RLConfig()
@@ -169,6 +172,12 @@ def main():
                 ema_win = win_rate
             else:
                 ema_win = 0.98 * ema_win + 0.02 * win_rate
+            if args.max_minutes and (time.time() - t_start) / 60.0 >= args.max_minutes:
+                print(f"\n[mcbot] reached --max-minutes={args.max_minutes}; "
+                      f"saving final checkpoint", flush=True)
+                if not args.no_save:
+                    log.save_checkpoint(trainer, it)
+                break
     except KeyboardInterrupt:
         print("\n[mcbot] interrupted; saving checkpoint", flush=True)
         log.save_checkpoint(trainer, it)

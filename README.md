@@ -94,6 +94,22 @@ python3 -m venv .venv
 ```
 
 - 途中経過は `checkpoints/sword1v1_log.csv` に記録、Ctrl+C で保存終了、次回起動で自動再開。
+- `--max-minutes N` で「N分経ったらきれいに保存して停止」できます（CI用）。
+
+### GitHub Actions で6時間まるごと学習
+
+`.github/workflows/train.yml` を同梱しています。
+
+1. このリポジトリを GitHub にプッシュする。
+2. リポジトリの **Actions** タブ → **train-sword-1v1** → **Run workflow** を押す。
+3. ジョブが **~5時間40分** 学習し（512並列アリーナ、自動でウォームスタート→PPO自己対戦）、
+   終了時に **`sword1v1-checkpoints` というアーティファクト** として以下をアップロード:
+   - `checkpoints/sword1v1_best.pt`（固定ベースライン評価で最強の時点）
+   - `checkpoints/sword1v1_it*.pt`（最新）
+   - `checkpoints/sword1v1_log.csv`（履歴）
+
+   Actions のジョブ上限が6時間(=360分)なので、`--max-minutes 340` でクリーンに停止させ、
+   アップロード時間を確保しています。
 - `--eval-every` で「ランダム相手」への固定ベースライン評価を定期的に行い、
   **実力が最も高い時点を `*_best.pt` として保存**します（自己対戦相手は適応するため、
   自己対戦勝率は振動しますが、固定ベースライン評価が信頼できます）。
